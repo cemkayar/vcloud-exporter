@@ -24,4 +24,4 @@ The metric named vcd_services_status shows the service status of the vcloud dire
 		3 : "dead (normal when appliance is in manual failover mode)"
 </code>	
 
-Developed by vmware team (sys.dev@trendyol.com)
+Developed by vmware team 
