@@ -1,0 +1,10 @@
+{
+ "user": "user-name",
+  "password": "pass",
+  "org": "org-name/system",
+  "Href": "vcloud.venus.tyinfra.com",
+  "Insecure":    true,
+  "api_version": "37.1",
+  "console_user" : "root",
+  "console_pass" : "console pass"
+}
