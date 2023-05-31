@@ -6,7 +6,7 @@ Before to use the project, please edit config.json file according your vcloud di
   "user": "user-name",
   "password": "pass",
   "org": "org-name/system",
-  "Href": "vcloud link",
+  "Href": "vcloud.venus.tyinfra.com",
   "Insecure":    true,
   "api_version": "37.1",
   "console_user" : "root",
@@ -24,4 +24,4 @@ The metric named vcd_services_status shows the service status of the vcloud dire
 		3 : "dead (normal when appliance is in manual failover mode)"
 </code>	
 
-Developed by vmware team 
+Developed by vmware team (sys.dev@trendyol.com)

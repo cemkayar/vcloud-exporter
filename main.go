@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -80,12 +79,14 @@ func (config *Cfg) getCells(client *http.Client) (*Cells, error) {
 	b, err := config.getURL(client, "")
 	if err != nil {
 		fmt.Println(err)
-		panic(err)
+		return nil, err
+		//panic(err)
 	}
 	err = json.Unmarshal([]byte(b), &cells)
 	if err != nil {
 		fmt.Println(err)
-		panic(err)
+		return nil, err
+		//panic(err)
 	}
 	//fmt.Println("90:cells : ", cells)
 	return &cells, err
@@ -115,7 +116,7 @@ func (cells *Cells) getCellServices(config *Cfg, client *http.Client) (cellServi
 		defer res.Body.Close()
 		if err != nil {
 			fmt.Println("Error sending HTTP request:", err)
-			os.Exit(22)
+			//os.Exit(22)
 		}
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
@@ -125,7 +126,8 @@ func (cells *Cells) getCellServices(config *Cfg, client *http.Client) (cellServi
 		err = json.Unmarshal([]byte(body), &services)
 		if err != nil {
 			fmt.Println(err)
-			panic(err)
+			return nil, err
+			//panic(err)
 		}
 		for _, service := range services {
 			cellService := struct {
@@ -177,7 +179,7 @@ func (cells *Cells) getBackupStatus(config *Cfg, client *http.Client) ([]listOfB
 		res, err := client.Do(req)
 		if err != nil {
 			fmt.Println("Error sending HTTP request:", err)
-			os.Exit(11)
+			//os.Exit(11)
 		}
 
 		defer res.Body.Close()
@@ -190,7 +192,8 @@ func (cells *Cells) getBackupStatus(config *Cfg, client *http.Client) ([]listOfB
 		err = json.Unmarshal([]byte(body), &backup)
 		if err != nil {
 			fmt.Println(err)
-			panic(err)
+			return nil, err
+			//panic(err)
 		}
 		pagecount++
 
@@ -247,7 +250,7 @@ func (info *Cfg) getToken(client *http.Client) { //string {
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error sending HTTP request:", err)
-		os.Exit(1)
+		//os.Exit(1)
 	}
 	defer res.Body.Close()
 
@@ -479,26 +482,29 @@ func main() {
 	client = newHTTPClient()
 	cfg, err := LoadConfig("config.json")
 	if err != nil {
-		panic(err)
+		fmt.Println("error code : 486")
+		//panic(err)
 	}
 	link = cfg.Href
-	cfg.getToken(client)
 
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-
+		cfg.Href = link
+		cfg.getToken(client)
 		pagecount := 1
 		for {
 
 			cfg.Href = fmt.Sprintf("https://%s/cloudapi/1.0.0/providerVdcs?page=%d", link, pagecount)
 			b, err := cfg.getURL(client, "")
 			if err != nil {
+				fmt.Println("error code : 500")
 				fmt.Println(err)
-				panic(err)
+				//panic(err)
 			}
 			err = json.Unmarshal([]byte(b), &pvdclist)
 			if err != nil {
+				fmt.Println("error code : 506")
 				fmt.Println(err)
-				panic(err)
+				//panic(err)
 			}
 			pagecount++
 
@@ -516,14 +522,16 @@ func main() {
 			cfg.Href = "https://" + link + "/api/admin/providervdc/" + returnID(pvdcs.ID)
 			b, err := cfg.getURL(client, "vnd.vmware.admin.providervdc")
 			if err != nil {
+				fmt.Println("error code : 526")
 				fmt.Println(err)
-				panic(err)
+				//panic(err)
 			}
 			//println(string(b))
 			err = json.Unmarshal([]byte(b), &pvdcmetric)
 			if err != nil {
+				fmt.Println("error code : 533")
 				fmt.Println(err)
-				panic(err)
+				//panic(err)
 			}
 			//fmt.Println("Name : ", pvdcmetric.Name, "Description :", pvdcmetric.Description, "\n", "Memory Used: ", pvdcmetric.ComputeCapacity.Memory.MemoryUsed/1024, "Memory Total: ", pvdcmetric.ComputeCapacity.Memory.MemoryTotal/1024, "Usage% :", pvdcmetric.ComputeCapacity.Memory.MemoryUsed/pvdcmetric.ComputeCapacity.Memory.MemoryTotal*100, " CPU Used :", pvdcmetric.ComputeCapacity.Cpu.CpuUsed/1000, " CPU Total :", pvdcmetric.ComputeCapacity.Cpu.CpuTotal/1000, "Usage% :", pvdcmetric.ComputeCapacity.Cpu.CpuUsed/pvdcmetric.ComputeCapacity.Cpu.CpuTotal*100)
 			pvdcMemoryUsed.WithLabelValues(parseHostname(cfg.Href), pvdcmetric.Name).Set(float64(pvdcmetric.ComputeCapacity.Memory.MemoryUsed))
@@ -540,13 +548,15 @@ func main() {
 			cfg.Href = fmt.Sprintf("https://%s/cloudapi/1.0.0/orgs?page=%d", link, pagecount)
 			b, err := cfg.getURL(client, "")
 			if err != nil {
+				fmt.Println("error code : 552")
 				fmt.Println(err)
-				panic(err)
+				//panic(err)
 			}
 			err = json.Unmarshal([]byte(b), &orglist)
 			if err != nil {
+				fmt.Println("error code : 558")
 				fmt.Println(err)
-				panic(err)
+				//panic(err)
 			}
 			pagecount++
 
@@ -567,14 +577,16 @@ func main() {
 			cfg.Href = "https://" + link + "/api/org/" + returnID(orgs.ID) + "/vdcRollup"
 			b, err := cfg.getURL(client, "vnd.vmware.vcloud.orgvdcRollup")
 			if err != nil {
+				fmt.Println("error code : 581")
 				fmt.Println(err)
-				panic(err)
+				//panic(err)
 			}
 			//println(string(b))
 			err = json.Unmarshal([]byte(b), &body)
 			if err != nil {
+				fmt.Println("error code : 588")
 				fmt.Println(err)
-				panic(err)
+				//panic(err)
 			}
 
 			//fmt.Println("lenght of vdc : ", len(body.OrgVdcReference))
@@ -591,14 +603,16 @@ func main() {
 
 		cells, err := cfg.getCells(client)
 		if err != nil {
+			fmt.Println("error code : 607")
 			fmt.Println(err)
-			panic(err)
+			//panic(err)
 		}
 		//fmt.Println("594:cells:", cells)
 		backups, err := cells.getBackupStatus(cfg, client)
 		if err != nil {
+			fmt.Println("error code : 614")
 			fmt.Println(err)
-			panic(err)
+			//panic(err)
 		}
 		//err = json.Unmarshal(t, &lOBF)
 		now := time.Now()
@@ -611,7 +625,9 @@ func main() {
 
 			t, err := time.Parse(layout, bck.Date.String())
 			if err != nil {
-				panic(err)
+				fmt.Println("error code : 629")
+				fmt.Println(err)
+				//panic(err)
 			}
 			if t.Day() == today {
 				backupStatus = 1
@@ -625,8 +641,9 @@ func main() {
 
 		services, err := cells.getCellServices(cfg, client)
 		if err != nil {
+			fmt.Println("error code : 645")
 			fmt.Println(err)
-			panic(err)
+			//panic(err)
 		}
 		for _, service := range services {
 			switch service.Status {
@@ -642,6 +659,8 @@ func main() {
 			//fmt.Println("cell : ", service.CellName, "service : ", service.ServiceName, "status : ", stat)
 			vcdServicesStatus.WithLabelValues(service.CellName, service.ServiceName).Set(float64(stat))
 		}
+		pvdc2 = nil
+		org2 = nil
 		promhttp.Handler().ServeHTTP(w, r)
 	}) //http.HandleFunc
 	// start prometheus metric page
