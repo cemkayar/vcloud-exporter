@@ -6,7 +6,7 @@ Before to use the project, please edit config.json file according your vcloud di
   "user": "user-name",
   "password": "pass",
   "org": "org-name/system",
-  "Href": "vcloud.venus.tyinfra.com",
+  "Href": "vcloud link",
   "Insecure":    true,
   "api_version": "37.1",
   "console_user" : "root",
