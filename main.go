@@ -26,6 +26,7 @@ type Cfg struct {
 	Console_user string
 	Console_pass string
 	token        string
+	Debug        bool
 }
 type Cells struct {
 	ResultTotal  int           `json:"resultTotal"`
@@ -34,12 +35,12 @@ type Cells struct {
 	PageSize     int           `json:"pageSize"`
 	Associations []interface{} `json:"associations"`
 	Values       []struct {
-		ID               string    `json:"id"`
-		ProductBuildDate time.Time `json:"productBuildDate"`
-		IsActive         bool      `json:"isActive"`
-		Name             string    `json:"name"`
-		PrimaryIP        string    `json:"primaryIP"`
-		ProductVersion   string    `json:"productVersion"`
+		ID               string `json:"id"`
+		ProductBuildDate string `json:"productBuildDate"`
+		IsActive         bool   `json:"isActive"`
+		Name             string `json:"name"`
+		PrimaryIP        string `json:"primaryIP"`
+		ProductVersion   string `json:"productVersion"`
 	} `json:"values"`
 }
 type Backup struct {
@@ -49,11 +50,11 @@ type Backup struct {
 	ResultTotal       int                 `json:"resultTotal"`
 }
 type listOfBackupFiles struct {
-	Date     time.Time `json:"date"`
-	Location string    `json:"location"`
-	Name     string    `json:"name"`
-	Size     int       `json:"size"`
-	Version  string    `json:"version"`
+	Date     string `json:"date"`
+	Location string `json:"location"`
+	Name     string `json:"name"`
+	Size     int    `json:"size"`
+	Version  string `json:"version"`
 }
 type Services []struct {
 	ServiceName string `json:"serviceName"`
@@ -77,6 +78,9 @@ func (config *Cfg) getCells(client *http.Client) (*Cells, error) {
 	var cells Cells
 	config.Href = fmt.Sprintf("https://%s/cloudapi/1.0.0/cells", link)
 	b, err := config.getURL(client, "")
+	if config.Debug {
+		fmt.Println("called getCells url : ", config.Href)
+	}
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -88,7 +92,10 @@ func (config *Cfg) getCells(client *http.Client) (*Cells, error) {
 		return nil, err
 		//panic(err)
 	}
-	//fmt.Println("90:cells : ", cells)
+	if config.Debug {
+		fmt.Println("called getCells func : ", err)
+	}
+	//fmt.Println("cells : ", &cells)
 	return &cells, err
 }
 func (cells *Cells) getCellServices(config *Cfg, client *http.Client) (cellServices, error) {
@@ -103,12 +110,20 @@ func (cells *Cells) getCellServices(config *Cfg, client *http.Client) (cellServi
 		client := &http.Client{Transport: tr}
 	*/
 	i := 0
-
+	if config.Debug {
+		fmt.Println("called getCellServices, it's begin of func ")
+	}
 	for _, cell := range cells.Values {
 		consoleLink = fmt.Sprintf("https://%s:5480/api/1.0.0/services", cell.Name)
+		if config.Debug {
+			fmt.Println("getCellServices : called cells services from 5480 : ", consoleLink)
+		}
 		req, err := http.NewRequest("GET", consoleLink, nil)
 		req.Header.Add("Accept", "application/*;version="+config.Api_version)
 		req.Header.Add("Authorization", "Basic "+auth)
+		if config.Debug {
+			fmt.Println("getCellServices : auth for 5480 : ", auth)
+		}
 		res, err := client.Do(req)
 		if err != nil {
 			fmt.Println(err, req)
@@ -120,11 +135,18 @@ func (cells *Cells) getCellServices(config *Cfg, client *http.Client) (cellServi
 		}
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
+			if config.Debug {
+				fmt.Println("getCellServices, reading body of services page from 5480")
+			}
 			fmt.Println(err)
 			return nil, err
 		}
 		err = json.Unmarshal([]byte(body), &services)
 		if err != nil {
+			if config.Debug {
+				fmt.Println("getCellServices, unmarshall json")
+				fmt.Println("getCellServices, services: ", &services)
+			}
 			fmt.Println(err)
 			return nil, err
 			//panic(err)
@@ -144,6 +166,9 @@ func (cells *Cells) getCellServices(config *Cfg, client *http.Client) (cellServi
 		}
 		i++
 	}
+	if config.Debug {
+		fmt.Println("getCellServices, end of func")
+	}
 	return cellServicesResult, nil
 }
 
@@ -151,8 +176,10 @@ func (cells *Cells) getBackupStatus(config *Cfg, client *http.Client) ([]listOfB
 	var backup Backup
 	var listOfBFs []listOfBackupFiles
 	var backupCheckCell string
-
-	// if the cell state is active, the backup status list query sending  to active cell
+	if config.Debug {
+		fmt.Println("getBackupStatus, begining func")
+	}
+	// which cell state is active, the query will be sent  to active cell
 	for i := 0; i < len(cells.Values); i++ {
 		if cells.Values[i].IsActive {
 			backupCheckCell = cells.Values[i].Name
@@ -168,6 +195,9 @@ func (cells *Cells) getBackupStatus(config *Cfg, client *http.Client) ([]listOfB
 		client := &http.Client{Transport: tr}
 	*/
 	pagecount := 1
+	if config.Debug {
+		fmt.Println("getBackupStatus, getting backup status frıom 5480")
+	}
 	for {
 		consoleLink := fmt.Sprintf("https://%s:5480/api/1.0.0/backups?page=%d", backupCheckCell, pagecount)
 		req, err := http.NewRequest("GET", consoleLink, nil)
@@ -186,11 +216,17 @@ func (cells *Cells) getBackupStatus(config *Cfg, client *http.Client) ([]listOfB
 
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
+			if config.Debug {
+				fmt.Println("getBackupStatus, reading services page from 5480 : ", err)
+			}
 			fmt.Println(err)
 			return nil, err
 		}
 		err = json.Unmarshal([]byte(body), &backup)
 		if err != nil {
+			if config.Debug {
+				fmt.Println("getBackupStatus, unmarshal error : ", err)
+			}
 			fmt.Println(err)
 			return nil, err
 			//panic(err)
@@ -234,6 +270,9 @@ func (info *Cfg) getToken(client *http.Client) { //string {
 	}
 	//fmt.Println(info)
 	auth := base64.StdEncoding.EncodeToString([]byte(info.User + "@" + info.Org + ":" + info.Password))
+	if info.Debug {
+		fmt.Println("auth : ", auth)
+	}
 	/*
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -260,7 +299,9 @@ func (info *Cfg) getToken(client *http.Client) { //string {
 		//println(head)
 		if head == "X-Vmware-Vcloud-Access-Token" {
 			token = v[0]
-			//fmt.Println(v[0])
+			if info.Debug {
+				fmt.Println(v[0])
+			}
 		}
 
 	}
@@ -303,7 +344,7 @@ func (cfg *Cfg) getURL(client *http.Client, header string) ([]byte, error) {
 		fmt.Println(err)
 		return nil, err
 	}
-	//	fmt.Println("301: body : ", body)
+	//fmt.Println("301: body : ", body)
 	return body, nil
 }
 
@@ -479,17 +520,36 @@ func main() {
 	sumMemConsumption := float64(0)
 	sumCpuConsumption := float64(0)
 	sumPoweredOnVMs := 0
+
 	client = newHTTPClient()
+
 	cfg, err := LoadConfig("config.json")
+	fmt.Println("load config, debug: ", cfg.Debug)
 	if err != nil {
 		fmt.Println("error code : 486")
 		//panic(err)
 	}
+	if cfg.Debug {
+		fmt.Println("main :config file loaded")
+	}
+	cfg.getToken(client)
 	link = cfg.Href
-
+	if cfg.Debug {
+		fmt.Println("main :handlefunc starts")
+	}
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		//defer func() {
+		//	if err := recover(); err != nil {
+		//		log.Println("Hata:", err)
+		//		w.WriteHeader(http.StatusInternalServerError)
+		//		fmt.Fprintf(w, "Hata: %v", err)
+		//	}
+		//}()
 		cfg.Href = link
-		cfg.getToken(client)
+		if cfg.Debug {
+			fmt.Println("main :token taken")
+		}
+		//cfg.getToken(client)
 		pagecount := 1
 		for {
 
@@ -499,6 +559,9 @@ func main() {
 				fmt.Println("error code : 500")
 				fmt.Println(err)
 				//panic(err)
+			}
+			if cfg.Debug {
+				fmt.Println("main :getUrl , ", cfg.Href)
 			}
 			err = json.Unmarshal([]byte(b), &pvdclist)
 			if err != nil {
@@ -516,7 +579,9 @@ func main() {
 			}
 			//println(string([]byte(b)))
 		}
-
+		if cfg.Debug {
+			fmt.Println("main :pvdc loop starts")
+		}
 		for _, pvdcs := range pvdc2 {
 			//fmt.Println("ID: ", returnID(orgs.ID), "Name: ", orgs.Name, "isEnabled: ", orgs.IsEnabled, "OrgVdcCount: ", orgs.OrgVdcCount, "RunningVMCount: ", orgs.RunningVMCount)
 			cfg.Href = "https://" + link + "/api/admin/providervdc/" + returnID(pvdcs.ID)
@@ -525,6 +590,9 @@ func main() {
 				fmt.Println("error code : 526")
 				fmt.Println(err)
 				//panic(err)
+			}
+			if cfg.Debug {
+				fmt.Println("main :pvdc loop link , ", cfg.Href)
 			}
 			//println(string(b))
 			err = json.Unmarshal([]byte(b), &pvdcmetric)
@@ -541,7 +609,9 @@ func main() {
 
 		}
 		// collect Org vdc metrics
-
+		if cfg.Debug {
+			fmt.Println("main :org list ")
+		}
 		pagecount = 1
 		for {
 
@@ -551,6 +621,9 @@ func main() {
 				fmt.Println("error code : 552")
 				fmt.Println(err)
 				//panic(err)
+			}
+			if cfg.Debug {
+				fmt.Println("main :org loop link , ", cfg.Href)
 			}
 			err = json.Unmarshal([]byte(b), &orglist)
 			if err != nil {
@@ -580,6 +653,9 @@ func main() {
 				fmt.Println("error code : 581")
 				fmt.Println(err)
 				//panic(err)
+			}
+			if cfg.Debug {
+				fmt.Println("main :org vdcRollup link , ", cfg.Href)
 			}
 			//println(string(b))
 			err = json.Unmarshal([]byte(b), &body)
@@ -617,13 +693,16 @@ func main() {
 		//err = json.Unmarshal(t, &lOBF)
 		now := time.Now()
 		today := now.Day()
-		layout := "2006-01-02 15:04:05 -0700 MST"
+		//layout := "2006-01-02 15:04:05 -0700 MST"
+		layout := time.RFC3339
+
 		backupStatus := 0
 		stat := 0
 		for _, bck := range backups {
-			//fmt.Println("backups : ", bck.Name, "size : ", bck.Size, "Date : ", bck.Date, "backup Status : ", backupStatus)
-
-			t, err := time.Parse(layout, bck.Date.String())
+			if cfg.Debug {
+				fmt.Println("backups : ", bck.Name, "size : ", bck.Size, "Date : ", bck.Date, "backup Status : ", backupStatus)
+			}
+			t, err := time.Parse(layout, bck.Date)
 			if err != nil {
 				fmt.Println("error code : 629")
 				fmt.Println(err)
@@ -632,7 +711,7 @@ func main() {
 			if t.Day() == today {
 				backupStatus = 1
 			}
-			vcdBackupSize.WithLabelValues(body.SiteReference[0].Name, bck.Name, bck.Date.String()).Set(float64(bck.Size))
+			vcdBackupSize.WithLabelValues(body.SiteReference[0].Name, bck.Name, bck.Date).Set(float64(bck.Size))
 
 			//fmt.Println("backups : ", bck.Name, "size : ", bck.Size, "Date : ", bck.Date)
 		}
@@ -666,6 +745,6 @@ func main() {
 	// start prometheus metric page
 	fmt.Println("0.0.0.0:9273/metrics is started")
 	//http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(":9273", nil)
+	log.Fatal(http.ListenAndServe(":9273", nil))
 
 }
